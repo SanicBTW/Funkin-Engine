@@ -31,6 +31,7 @@ class KeybindsState extends MusicBeatState
 	var instance:KeybindsState;
 
 	var canPress:Bool = true;
+	var adding:Bool = false;
 	var listening:Bool = false;
 	var currentState(default, set):SelectionState = SELECTING;
 
@@ -193,7 +194,6 @@ class KeybindsState extends MusicBeatState
 		var addKey:KeybindSelector = new KeybindSelector(0, (50 * i) + 10, 'Add bind', Std.int(object.width * 1.8), null);
 		addKey.targetY = i;
 		addKey.ID = i;
-		@:privateAccess
 		addKey.bitText.x = (FlxG.width / 2) - (addKey.width / 2) - 25;
 		addKey.forceX = (FlxG.width / 2) - (object.width / 2);
 		bindedActions.add(addKey);
@@ -249,11 +249,35 @@ class KeybindsState extends MusicBeatState
 							}
 						case "confirm":
 							{
+								if (bindedActions.members[curKeySelected].bitText.text == "Add bind")
+								{
+									var actionObject:KeybindSelector = currentActions.members[curSelected];
+									var currentKeyObject:KeybindSelector = bindedActions.members[curKeySelected];
+									var keyObject:KeybindSelector = bindedActions.members[curKeySelected - 1];
+									var actionMap:StringMap<Array<Null<Int>>> = Reflect.field(Controls, actions[curActions]);
+
+									var newKeySelector:KeybindSelector = new KeybindSelector(0, 0, 'Keybind ${keyObject.ID + 1}: ',
+										Std.int(actionObject.width * 1.8), null, "?");
+									newKeySelector.targetY = currentKeyObject.targetY;
+									newKeySelector.ID = keyObject.ID + 1;
+									newKeySelector.baseKey = "";
+									newKeySelector.forceX = (FlxG.width / 2) - (actionObject.width / 2);
+
+									currentKeyObject.ID = newKeySelector.ID + 1;
+									currentKeyObject.targetY = newKeySelector.ID + 1;
+
+									bindedActions.insert(bindedActions.length - 1, newKeySelector);
+
+									adding = true;
+								}
+
 								currentState = WAITING;
 								listening = true;
 								canPress = false;
-								if (bindedActions.members[curKeySelected].subBitText != null)
-									bindedActions.members[curKeySelected].subBitText.text = "?";
+
+								/*
+									if (bindedActions.members[curKeySelected].subBitText != null)
+										bindedActions.members[curKeySelected].subBitText.text = "?"; */
 							}
 					}
 				}
@@ -280,7 +304,7 @@ class KeybindsState extends MusicBeatState
 	override public function update(elapsed:Float)
 	{
 		// keyCode 13 seems to be Enter/Return
-		if (currentState == WAITING && listening == true && Controls.keyPressed.length > 0 && Controls.keyPressed[0] != 13)
+		if (currentState == WAITING && listening && !adding && Controls.keyPressed.length > 0 && Controls.keyPressed[0] != 13)
 		{
 			var actionObject:KeybindSelector = currentActions.members[curSelected];
 			var keyObject:KeybindSelector = bindedActions.members[curKeySelected];
