@@ -117,5 +117,41 @@ class Main extends Sprite
 			Cache.clearUnusedMemory();
 			Cache.runGC();
 		});
+
+		/*
+			FlxG.stage.window.onDropFile.add((file:String) -> {
+				#if html5
+				var fileObj:FileList = cast(file, FileList);
+				var itemURL = URL.createObjectURL(fileObj.item(0));
+				trace(itemURL);
+
+				var sound = new Sound();
+				new Response(itemURL).blob().then((blob) ->
+				{
+					js.Browser.console.log(blob);
+				});
+				/*
+					var reader = new FileReader();
+					reader.onloadend = () ->
+					{
+						var res = cast(reader.result, ArrayBuffer);
+						sound.loadCompressedDataFromByteArray(res, res.byteLength);
+						ScriptableState.switchState(new states.SecretState(sound));
+					};
+					reader.readAsArrayBuffer(fileObj.item(0)); */
+		/*
+				var http = new Http(itemURL);
+				http.onError = function(msg)
+				{
+					trace(msg);
+				}
+				http.onBytes = function(data:Bytes)
+				{
+					sound.loadCompressedDataFromByteArray(data, data.length);
+					ScriptableState.switchState(new states.SecretState(sound));
+				}
+				http.request(); 
+			#end
+		});*/
 	}
 }

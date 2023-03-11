@@ -33,7 +33,12 @@ class CoolUtil
 					var note:Array<Dynamic> = notes[i];
 					if (note[1] < 0)
 					{
-						songJson.events.push([note[0], [[note[2], note[3], note[4]]]]);
+						songJson.events.push({
+							strumTime: note[0],
+							event: note[2],
+							value1: note[3],
+							value2: note[4]
+						});
 						notes.remove(note);
 						len = notes.length;
 					}

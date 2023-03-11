@@ -24,6 +24,7 @@ class Conductor
 	public static var sectionPosition:Int = 0;
 	public static var stepPosition:Int = 0;
 	public static var beatPosition:Int = 0;
+	public static var beatDecimal:Float = 0;
 
 	// for resync??
 	public static final comparisonThreshold:Float = 30;
@@ -68,8 +69,7 @@ class Conductor
 
 		crochet = calculateCrochet(newBPM);
 		stepCrochet = (crochet / 4);
-		var oldSpeed = songSpeed; // ?
-		songSpeed = flixel.math.FlxMath.roundDecimal((0.45 * (baseSpeed + ((bpm / 60) / oldSpeed) * (stepCrochet / 1000))), 2);
+		songSpeed = flixel.math.FlxMath.roundDecimal((0.45 * (baseSpeed + ((bpm / 60) / songSpeed) * (stepCrochet / 1000))), 2);
 		for (note in ChartLoader.unspawnedNoteList)
 		{
 			note.updateSustainScale();
@@ -80,38 +80,91 @@ class Conductor
 	{
 		if (boundSong.isPlaying)
 		{
-			var lastChange:BPMChangeEvent = getBPMFromSeconds(songPosition);
-
-			stepPosition = lastChange.stepTime + Math.floor((songPosition - lastChange.songTime) / stepCrochet);
-			sectionPosition = Math.floor(stepPosition / 16);
-			beatPosition = Math.floor(stepPosition / 4);
-
-			if (stepPosition > lastStep)
+			if (songPosition < 0)
+				beatDecimal = 0;
+			else
 			{
-				if (boundSong.tag != "musicPERSIST")
+				if (TimingStruct.timings.length > 1)
 				{
-					if ((Math.abs(boundSong.playbackTime - songPosition) > comparisonThreshold)
-						|| (boundVocals != null
-							&& boundVocals.audioSource != null
-							&& Math.abs(boundVocals.playbackTime - songPosition) > comparisonThreshold))
-						resyncTime();
+					var data:TimingStruct = TimingStruct.getTimingAtTimestamp(songPosition);
+					crochet = ((60 / data.bpm) * 1000);
+					flixel.FlxG.watch.addQuick("Conductor timing seg", data.bpm);
+
+					var step:Float = (((60 / data.bpm) * 1000) / 4);
+					var startInMS:Float = (data.startTime * 1000);
+
+					beatDecimal = data.startBeat + ((((songPosition / 1000)) - data.startTime) * (data.bpm / 60));
+					var intStep:Int = Math.floor(data.startStep + ((songPosition) - startInMS) / step);
+					if (intStep >= 0)
+					{
+						if (intStep > stepPosition)
+						{
+							for (i in stepPosition...intStep)
+							{
+								stepPosition++;
+								updateBeat();
+								stepHit();
+							}
+						}
+						else if (intStep < stepPosition)
+						{
+							trace("Reset steps at " + songPosition);
+							stepPosition = intStep;
+							updateBeat();
+							stepHit();
+						}
+					}
 				}
-
-				boundState.stepHit();
-				lastStep = stepPosition;
-			}
-
-			if (beatPosition > lastBeat)
-			{
-				if (stepPosition % 4 == 0)
-					boundState.beatHit();
-				lastBeat = beatPosition;
+				else
+				{
+					beatDecimal = (((songPosition / 1000))) * (bpm / 60);
+					var nextStep:Int = Math.floor(songPosition / stepCrochet);
+					if (nextStep >= 0)
+					{
+						if (nextStep > stepPosition)
+						{
+							for (i in stepPosition...nextStep)
+							{
+								stepPosition++;
+								updateBeat();
+								stepHit();
+							}
+						}
+						else if (nextStep < stepPosition)
+						{
+							trace("(No BPM Change) Reset steps at " + songPosition);
+							stepPosition = nextStep;
+							updateBeat();
+							stepHit();
+						}
+					}
+					crochet = ((60 / bpm) * 1000);
+				}
 			}
 
 			songPosition += elapsed * 1000;
 		}
 	}
 
+	private static function updateBeat()
+	{
+		lastBeat = beatPosition;
+		beatPosition = Math.floor(stepPosition / 4);
+	}
+
+	private static function stepHit()
+	{
+		boundState.stepHit();
+		if (stepPosition % 4 == 0)
+			boundState.beatHit();
+	}
+
+	/*
+		private static function updateSteps()
+		{
+			var lastChange:BPMChangeEvent = getBPMFromSeconds(songPosition);
+			stepPosition = lastChange.stepTime + Math.floor((songPosition - lastChange.songTime) / stepCrochet);
+	}*/
 	public static function resyncTime()
 	{
 		trace('Resyncing song time ${boundSong.playbackTime}, $songPosition');
@@ -154,6 +207,7 @@ class Conductor
 		songPosition = 0;
 		stepPosition = 0;
 		beatPosition = 0;
+		beatDecimal = 0;
 		lastStep = -1;
 		lastBeat = -1;
 	}

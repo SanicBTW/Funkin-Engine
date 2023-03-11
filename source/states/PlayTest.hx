@@ -7,6 +7,7 @@ import base.ScriptableState;
 import base.system.Conductor;
 import base.system.Controls;
 import base.system.SoundManager.AudioStream;
+import base.system.TimingStruct;
 import flixel.FlxCamera;
 import flixel.FlxG;
 import flixel.FlxObject;
@@ -230,6 +231,18 @@ class PlayTest extends MusicBeatState
 				if (player.animation.curAnim.name.startsWith("sing") && !player.animation.curAnim.name.endsWith("miss"))
 					player.dance();
 			}
+
+			var timingSeg:TimingStruct = TimingStruct.getTimingAtBeat(Conductor.beatDecimal);
+			if (timingSeg != null)
+			{
+				if (timingSeg.bpm != Conductor.bpm)
+				{
+					trace("BPM Change to " + timingSeg.bpm);
+					Conductor.changeBPM(timingSeg.bpm);
+					Conductor.crochet = ((60 / (timingSeg.bpm) * 1000));
+					Conductor.stepCrochet = Conductor.crochet / 4;
+				}
+			}
 		}
 	}
 
@@ -344,14 +357,6 @@ class PlayTest extends MusicBeatState
 		{
 			FlxG.camera.zoom += 0.015;
 			camHUD.zoom += 0.05;
-		}
-
-		if (SONG.notes[Std.int(curStep / 16)] != null)
-		{
-			if (SONG.notes[Std.int(curStep / 16)].changeBPM)
-			{
-				Conductor.changeBPM(SONG.notes[Std.int(curStep / 16)].bpm);
-			}
 		}
 	}
 
